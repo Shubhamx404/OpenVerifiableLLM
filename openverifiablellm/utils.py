@@ -21,11 +21,11 @@ def compute_merkle_root(file_path: Union[str, Path], chunk_size: int = 1024 * 10
     with path.open("rb") as f:
         while chunk := f.read(chunk_size):
             # reuse compute_sha256
-            leaf_hex = compute_sha256(chunk)
+            leaf_hex = compute_sha256(data=chunk)
             leaves.append(bytes.fromhex(leaf_hex))
 
     if not leaves:
-        return compute_sha256(b"")
+        return compute_sha256(data=b"")
 
     while len(leaves) > 1:
         next_level = []
@@ -34,7 +34,7 @@ def compute_merkle_root(file_path: Union[str, Path], chunk_size: int = 1024 * 10
             right = leaves[i + 1] if i + 1 < len(leaves) else left
 
             combined = left + right
-            parent_hex = compute_sha256(combined)
+            parent_hex = compute_sha256(data=combined)
             next_level.append(bytes.fromhex(parent_hex))
 
         leaves = next_level
@@ -126,9 +126,9 @@ def generate_manifest(raw_path, processed_path):
 
 # helpers:Update compute_sha256() to support bytes input directly.
 def compute_sha256(
+    file_path: Optional[Union[str, Path]] = None,
     *,
     data: Optional[Union[bytes, bytearray]] = None,
-    file_path: Optional[Union[str, Path]] = None,
 ) -> str:
     """
     Compute SHA256 hash of a file OR raw bytes.

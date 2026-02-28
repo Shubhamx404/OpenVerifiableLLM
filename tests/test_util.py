@@ -194,3 +194,8 @@ def test_merkle_root_empty_file(tmp_path):
     expected = hashlib.sha256(b"").hexdigest()
 
     assert root == expected
+
+
+def test_merkle_root_file_not_found():
+    with pytest.raises(FileNotFoundError):
+        utils.compute_merkle_root("non_existent_file.txt")
