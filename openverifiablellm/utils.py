@@ -21,11 +21,11 @@ def compute_merkle_root(file_path: Union[str, Path], chunk_size: int = 1024 * 10
     with path.open("rb") as f:
         while chunk := f.read(chunk_size):
             # reuse compute_sha256
-            leaf_hex = compute_sha256(chunk)
+            leaf_hex = compute_sha256(data=chunk)
             leaves.append(bytes.fromhex(leaf_hex))
 
     if not leaves:
-        return compute_sha256(b"")
+        return compute_sha256(data=b"")
 
     while len(leaves) > 1:
         next_level = []
@@ -34,7 +34,7 @@ def compute_merkle_root(file_path: Union[str, Path], chunk_size: int = 1024 * 10
             right = leaves[i + 1] if i + 1 < len(leaves) else left
 
             combined = left + right
-            parent_hex = compute_sha256(combined)
+            parent_hex = compute_sha256(data=combined)
             next_level.append(bytes.fromhex(parent_hex))
 
         leaves = next_level
@@ -42,10 +42,25 @@ def compute_merkle_root(file_path: Union[str, Path], chunk_size: int = 1024 * 10
     return leaves[0].hex()
 
 
+def _parse_and_clean_xml(file_obj, output_path):
+    context = ET.iterparse(file_obj, events=("end",))
+
+    with open(output_path, "w", encoding="utf-8") as out:
+        for _, elem in context:
+            if elem.tag.endswith("page"):
+                text_elem = elem.find(".//{*}text")
+
+                if text_elem is not None and text_elem.text:
+                    cleaned = clean_wikitext(text_elem.text)
+                    if cleaned:
+                        out.write(cleaned + "\n\n")
+
+                elem.clear()
+
 # extract clean wikipage from actual wikipage
 def extract_text_from_xml(input_path):
     """
-    Process a compressed Wikipedia XML dump into cleaned plain text.
+    Process a Wikipedia XML dump (compressed or uncompressed) into cleaned plain text.
 
     Each <page> element is parsed, its revision text is extracted,
     cleaned using `clean_wikitext()`, and appended to a single
@@ -57,7 +72,7 @@ def extract_text_from_xml(input_path):
     Parameters
     ----------
     input_path : str or Path
-        Path to the compressed Wikipedia XML (.bz2) dump file.
+        Path to the Wikipedia XML dump file (.bz2 or .xml).
 
     Output
     ------
@@ -65,31 +80,26 @@ def extract_text_from_xml(input_path):
         data/processed/wiki_clean.txt
     """
     input_path = Path(input_path)
+    if input_path.suffix not in ['.bz2', '.xml']:
+        raise ValueError(f"Unsupported file extension: {input_path.suffix}. Expected .bz2 or .xml")
 
     # Fixed output path
     project_root = Path.cwd()
     output_dir = project_root / "data" / "processed"
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     output_path = output_dir / "wiki_clean.txt"
 
-    with bz2.open(input_path, "rb") as f:
-        context = ET.iterparse(f, events=("end",))
+    if input_path.suffix == '.bz2':
+        with bz2.open(input_path, "rb") as f:
+            _parse_and_clean_xml(f, output_path)
+    elif input_path.suffix == '.xml':
+        with open(input_path, "rb") as f:
+            _parse_and_clean_xml(f, output_path)
 
-        with open(output_path, "w", encoding="utf-8") as out:
-            for _, elem in context:
-                if elem.tag.endswith("page"):
-                    text_elem = elem.find(".//{*}text")
-
-                    if text_elem is not None and text_elem.text:
-                        cleaned = clean_wikitext(text_elem.text)
-                        if cleaned:
-                            out.write(cleaned + "\n\n")
-
-                    elem.clear()
     logger.info("Preprocessing complete. Output saved to %s", output_path)
-    generate_manifest(input_path,output_path)
-    
+    generate_manifest(input_path, output_path)
+
 # generate data manifest
 def generate_manifest(raw_path, processed_path):
     raw_path = Path(raw_path)
@@ -103,8 +113,8 @@ def generate_manifest(raw_path, processed_path):
     manifest = {
         "wikipedia_dump": raw_path.name,
         "dump_date": extract_dump_date(raw_path.name),
-        "raw_sha256": compute_sha256(str(raw_path)),
-        "processed_sha256": compute_sha256(str(processed_path)),
+        "raw_sha256": compute_sha256(file_path=str(raw_path)),
+        "processed_sha256": compute_sha256(file_path=str(processed_path)),
 
         # ---------------- ADDED FIELDS ----------------
         "raw_merkle_root": compute_merkle_root(raw_path, chunk_size=MERKLE_CHUNK_SIZE_BYTES),
@@ -192,7 +202,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python -m openverifiablellm.utils <input_dump>")
         sys.exit(1)
-        
+
     logging.basicConfig(
     level=logging.INFO,
     format="%(levelname)s - %(message)s"

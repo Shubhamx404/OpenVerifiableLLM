@@ -15,7 +15,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python -m examples.demo_util <input_dump>")
         sys.exit(1)
-        
+
     logging.basicConfig(
     level=logging.INFO,
     format="%(levelname)s - %(message)s"

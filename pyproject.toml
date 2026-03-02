@@ -22,4 +22,3 @@ dev = [
 
 [tool.setuptools.packages.find]
 include = ["openverifiablellm*"]
-
