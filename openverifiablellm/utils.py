@@ -332,9 +332,9 @@ def verify_merkle_proof_from_file(
 
 # helpers:Update compute_sha256() to support bytes input directly.
 def compute_sha256(
+    file_path: Optional[Union[str, Path]] = None,
     *,
     data: Optional[Union[bytes, bytearray]] = None,
-    file_path: Optional[Union[str, Path]] = None,
 ) -> str:
     """
     Compute SHA256 hash of a file OR raw bytes.
