@@ -14,7 +14,7 @@ jobs:
   release:
     if: ${{ github.repository_owner == 'AOSSIE-Org' }}
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,19 +62,19 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const version = 'v${{ steps.get_version.outputs.version }}';
-            
+
             // Get all releases
             const { data: releases } = await github.rest.repos.listReleases({
               owner: context.repo.owner,
               repo: context.repo.repo,
             });
-            
+
             // Find the draft release
             const draftRelease = releases.find(release => release.draft === true);
-            
+
             if (draftRelease) {
               console.log(`Found draft release: ${draftRelease.name}`);
-              
+
               // Update and publish the draft release
               await github.rest.repos.updateRelease({
                 owner: context.repo.owner,
@@ -84,14 +84,14 @@ jobs:
                 name: version,
                 draft: false,
               });
-              
+
               console.log(`✓ Published draft release as ${version}`);
               core.setOutput('released', 'true');
             } else {
               console.log('⚠️ No draft release found. Please ensure release-drafter has created a draft release first.');
               core.setOutput('released', 'false');
               core.setFailed('No draft release found to publish');
-              
+
               //Uncomment below to auto-create release if no draft exists but also check release-drafter config first(why not working)
               // await github.rest.repos.createRelease({
               //   owner: context.repo.owner,

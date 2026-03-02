@@ -42,11 +42,11 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-  
+
   # args: ['--baseline', '.secrets.baseline'] (Maintainers should add a .secrets.baseline file for secret scanning.)
 
 # ==============================================================================
-# IMPORTANT: 
+# IMPORTANT:
 # Pre-commit runs locally every time you commit; only simple logic should be included here.
 # Heavy operations should be handled by CI/CD pipelines (GitHub Actions, etc.)
 # ==============================================================================

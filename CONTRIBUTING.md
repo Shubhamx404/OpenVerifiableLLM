@@ -244,7 +244,7 @@ TODO: Add project-specific code style guidelines
 
 - Check existing documentation first
 - Search closed issues for similar problems
-- Ask in Discord 
+- Ask in Discord
 - Tag maintainers if your PR is unattended for 1-2 weeks on discord
 
 ## 🎯 Issue Assignment

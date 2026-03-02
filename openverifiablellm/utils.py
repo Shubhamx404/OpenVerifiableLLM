@@ -152,10 +152,37 @@ def verify_merkle_proof(
 
     return current_hash == expected_root
 
+from contextlib import contextmanager
+
+@contextmanager
+def open_xml_file(filepath: Union[str, Path]):
+    """
+    Open an XML file, handling both uncompressed (.xml) and bz2-compressed (.bz2) formats.
+    Automatically detects the file type.
+    """
+    filepath = Path(filepath)
+    if not filepath.exists():
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    # Read the first few bytes to check for bz2 magic number
+    with open(filepath, "rb") as f:
+        magic = f.read(3)
+
+    if magic == b"BZh":
+        f = bz2.open(filepath, "rb")
+    else:
+        f = open(filepath, "rb")
+
+    try:
+        yield f
+    finally:
+        f.close()
+
+
 # extract clean wikipage from actual wikipage
 def extract_text_from_xml(input_path):
     """
-    Process a compressed Wikipedia XML dump into cleaned plain text.
+    Process a compressed Wikipedia XML dump or an uncompressed XML file into cleaned plain text.
 
     Each <page> element is parsed, its revision text is extracted,
     cleaned using `clean_wikitext()`, and appended to a single
@@ -167,7 +194,7 @@ def extract_text_from_xml(input_path):
     Parameters
     ----------
     input_path : str or Path
-        Path to the compressed Wikipedia XML (.bz2) dump file.
+        Path to the Wikipedia XML (.bz2 or .xml) dump file.
 
     Output
     ------
@@ -183,7 +210,7 @@ def extract_text_from_xml(input_path):
 
     output_path = output_dir / "wiki_clean.txt"
 
-    with bz2.open(input_path, "rb") as f:
+    with open_xml_file(input_path) as f:
         context = ET.iterparse(f, events=("end",))
 
         with open(output_path, "w", encoding="utf-8") as out:
