@@ -23,3 +23,10 @@ dev = [
 
 [tool.setuptools.packages.find]
 include = ["openverifiablellm*"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*SwigPyPacked.*:DeprecationWarning",
+    "ignore:.*SwigPyObject.*:DeprecationWarning",
+    "ignore:.*swigvarlink.*:DeprecationWarning"
+]
