@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+from dataclasses import asdict
 
 import numpy as np
 
@@ -87,6 +88,7 @@ def save_checkpoint(
         "model_state_dict": model.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
         "iteration": iteration,
+        "model_config": asdict(model.config),
         "environment_fingerprint": generate_environment_fingerprint(),
     }
 

@@ -60,11 +60,11 @@ def tokenize_dataset(
             split_idx = max(last_space_idx, last_newline_idx)
 
             if split_idx != -1:
-                complete_portion = text_chunk[: split_idx + 1]
-                remainder = text_chunk[split_idx + 1 :]
+                complete_portion = text_chunk[:split_idx]
+                remainder = text_chunk[split_idx:]
             else:
-                complete_portion = text_chunk
-                remainder = ""
+                complete_portion = ""
+                remainder = text_chunk
 
             if not complete_portion:
                 continue

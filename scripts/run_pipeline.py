@@ -29,7 +29,7 @@ def main():
     )
 
     args = parser.parse_args()
-    dump_path = Path(args.dump_path)
+    dump_path = Path(args.dump_path).expanduser().resolve()
 
     if not dump_path.exists():
         logger.error(f"Input dump file not found: {dump_path}")
