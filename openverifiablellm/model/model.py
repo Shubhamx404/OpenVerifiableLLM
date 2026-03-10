@@ -1,8 +1,11 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
-from typing import Optional
-from .config import ModelConfig
+
 from .attention import Attention, precompute_freqs_cis
+from .config import ModelConfig
+
 
 class RMSNorm(nn.Module):
     def __init__(self, dim: int, eps: float = 1e-6):

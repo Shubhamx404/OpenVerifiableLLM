@@ -1,18 +1,20 @@
 import argparse
 import logging
-import math
-import numpy as np
 import os
+
+import numpy as np
+
 # Require cuBLAS determinism config before CUDA initializes
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":16:8")
 
 import random
-import torch
 from pathlib import Path
 from typing import Tuple
 
-from openverifiablellm.model import ModelConfig, VerifiableLLM
+import torch
+
 from openverifiablellm.environment import generate_environment_fingerprint
+from openverifiablellm.model import ModelConfig, VerifiableLLM
 from openverifiablellm.utils import compute_merkle_root
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")

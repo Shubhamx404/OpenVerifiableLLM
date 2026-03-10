@@ -2,6 +2,7 @@ import argparse
 import logging
 import time
 from pathlib import Path
+
 import numpy as np
 from tokenizers.implementations import ByteLevelBPETokenizer
 

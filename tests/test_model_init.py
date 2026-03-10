@@ -1,6 +1,7 @@
 import hashlib
-import torch
+
 from openverifiablellm.model import ModelConfig, VerifiableLLM
+
 
 def get_model_hash(model):
     hasher = hashlib.sha256()

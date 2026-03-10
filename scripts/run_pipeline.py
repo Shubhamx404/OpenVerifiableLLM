@@ -1,7 +1,7 @@
 import argparse
+import logging
 import subprocess
 import sys
-import logging
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")

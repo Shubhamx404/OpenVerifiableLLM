@@ -1,8 +1,11 @@
 import math
+from typing import Optional
+
 import torch
 import torch.nn as nn
-from typing import Optional
+
 from .config import ModelConfig
+
 
 def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0):
     freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
