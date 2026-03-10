@@ -3,6 +3,9 @@ import logging
 import math
 import numpy as np
 import os
+# Require cuBLAS determinism config before CUDA initializes
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":16:8")
+
 import random
 import torch
 from pathlib import Path
@@ -27,7 +30,12 @@ def set_deterministic_seed(seed: int):
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    logger.info(f"Set deterministic seed to {seed}")
+    torch.use_deterministic_algorithms(True)
+
+    if os.environ.get("CUBLAS_WORKSPACE_CONFIG") not in (":16:8", ":4096:8"):
+        logger.warning("CUBLAS_WORKSPACE_CONFIG not set optimally. CUDA determinism may fail.")
+
+    logger.info(f"Set deterministic seed to {seed} (Deterministic algorithms enabled)")
 
 class DeterministicDataLoader:
     """
@@ -47,8 +55,12 @@ class DeterministicDataLoader:
 
     def get_batch(self, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
         # Generate random start indices
-        max_idx = self.total_tokens - self.seq_len - 1
-        ix = self.np_rng.randint(0, max_idx, size=(self.batch_size,))
+        max_start = self.total_tokens - self.seq_len
+        if max_start <= 0:
+            raise ValueError(
+                f"Need at least seq_len + 1 tokens, got {self.total_tokens}."
+            )
+        ix = self.np_rng.randint(0, max_start, size=(self.batch_size,))
 
         x = np.stack([self.data[i:i+self.seq_len].astype(np.int64) for i in ix])
         y = np.stack([self.data[i+1:i+self.seq_len+1].astype(np.int64) for i in ix])

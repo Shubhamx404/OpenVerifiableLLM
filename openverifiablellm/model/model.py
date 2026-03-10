@@ -59,6 +59,11 @@ class VerifiableLLM(nn.Module):
 
     def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None):
         _bsz, seqlen = tokens.shape
+        if seqlen > self.config.max_position_embeddings:
+            raise ValueError(
+                f"Sequence length {seqlen} exceeds "
+                f"max_position_embeddings={self.config.max_position_embeddings}"
+            )
         h = self.tok_embeddings(tokens)
 
         self.freqs_cis = self.freqs_cis.to(h.device)
@@ -90,7 +95,7 @@ class VerifiableLLM(nn.Module):
         # Save original state of RNGs
         cpu_rng_state = torch.get_rng_state()
         if torch.cuda.is_available():
-            gpu_rng_state = torch.cuda.get_rng_state()
+            gpu_rng_states = torch.cuda.get_rng_state_all()
 
         # Set strict seed for reproducibility of initialization
         torch.manual_seed(seed)
@@ -104,8 +109,10 @@ class VerifiableLLM(nn.Module):
                     torch.nn.init.zeros_(module.bias)
             elif isinstance(module, nn.Embedding):
                 torch.nn.init.normal_(module.weight, mean=0.0, std=self.config.initializer_range)
+            elif isinstance(module, RMSNorm):
+                torch.nn.init.ones_(module.weight)
 
         # Restore RNG to avoid changing outer application state unintentionally
         torch.set_rng_state(cpu_rng_state)
         if torch.cuda.is_available():
-            torch.cuda.set_rng_state(gpu_rng_state)
+            torch.cuda.set_rng_state_all(gpu_rng_states)

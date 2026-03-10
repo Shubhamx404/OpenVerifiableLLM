@@ -14,6 +14,20 @@ class ModelConfig:
     rope_theta: float = 10000.0
     initializer_range: float = 0.02
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.num_key_value_heads is None:
             self.num_key_value_heads = self.num_attention_heads
+
+        if self.hidden_size % self.num_attention_heads != 0:
+            raise ValueError(
+                f"hidden_size ({self.hidden_size}) must be divisible by num_attention_heads ({self.num_attention_heads})"
+            )
+
+        if self.num_attention_heads % self.num_key_value_heads != 0:
+            raise ValueError(
+                f"num_attention_heads ({self.num_attention_heads}) must be divisible by num_key_value_heads ({self.num_key_value_heads})"
+            )
+
+        head_dim = self.hidden_size // self.num_attention_heads
+        if head_dim % 2 != 0:
+            raise ValueError(f"head_dim ({head_dim}) must be even for rotary embeddings")

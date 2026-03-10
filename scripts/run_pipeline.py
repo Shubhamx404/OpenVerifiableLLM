@@ -62,6 +62,7 @@ def main():
     cmd4 = [
         sys.executable, "-m", "openverifiablellm.train",
         "--data_path", str(tokens_bin_path),
+        "--output_dir", str(project_root / "data" / "checkpoints"),
         "--max_steps", "10",  # Just run 10 steps max for the full pipeline demo to ensure it works
         "--log_interval", "5",
         "--save_interval", "10"

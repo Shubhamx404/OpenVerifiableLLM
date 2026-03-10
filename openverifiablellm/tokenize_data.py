@@ -33,15 +33,42 @@ def tokenize_dataset(text_path: Path, tokenizer_path: Path, output_path: Path, c
     total_tokens = 0
     total_chunks = 0
 
-    with open(text_path, "r", encoding="utf-8") as f_in, \
+    with open(text_path, encoding="utf-8") as f_in, \
          open(output_path, "wb") as f_out:
 
+        remainder = ""
         while True:
             text_chunk = f_in.read(chunk_size)
             if not text_chunk:
+                if remainder:
+                    encoded = tokenizer.encode(remainder)
+                    if encoded.ids and max(encoded.ids) > 65535:
+                        raise ValueError(f"Token ID {max(encoded.ids)} exceeds uint16 bound of 65535")
+                    ids = np.array(encoded.ids, dtype='<u2')
+                    f_out.write(ids.tobytes())
+                    total_tokens += len(ids)
                 break
 
-            encoded = tokenizer.encode(text_chunk)
+            text_chunk = remainder + text_chunk
+
+            last_space_idx = text_chunk.rfind(" ")
+            last_newline_idx = text_chunk.rfind("\n")
+            split_idx = max(last_space_idx, last_newline_idx)
+
+            if split_idx != -1:
+                complete_portion = text_chunk[:split_idx + 1]
+                remainder = text_chunk[split_idx + 1:]
+            else:
+                complete_portion = text_chunk
+                remainder = ""
+
+            if not complete_portion:
+                continue
+
+            encoded = tokenizer.encode(complete_portion)
+
+            if encoded.ids and max(encoded.ids) > 65535:
+                raise ValueError(f"Token ID {max(encoded.ids)} exceeds uint16 bound of 65535")
 
             # Strict little-endian uint16 ('<u2') for verifiable determinism
             ids = np.array(encoded.ids, dtype='<u2')
