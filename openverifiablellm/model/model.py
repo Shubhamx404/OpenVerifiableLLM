@@ -17,8 +17,9 @@ class RMSNorm(nn.Module):
         return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
 
     def forward(self, x):
-        output = self._norm(x.float()).type_as(x)
-        return output * self.weight
+        output = self._norm(x.float())
+        return (output * self.weight).type_as(x)
+
 
 class MLP(nn.Module):
     def __init__(self, config: ModelConfig):
@@ -29,6 +30,7 @@ class MLP(nn.Module):
 
     def forward(self, x):
         return self.down_proj(torch.nn.functional.silu(self.gate_proj(x)) * self.up_proj(x))
+
 
 class TransformerBlock(nn.Module):
     def __init__(self, config: ModelConfig):
@@ -43,6 +45,7 @@ class TransformerBlock(nn.Module):
         out = h + self.feed_forward(self.ffn_norm(h))
         return out
 
+
 class VerifiableLLM(nn.Module):
     def __init__(self, config: ModelConfig):
         super().__init__()
@@ -50,14 +53,16 @@ class VerifiableLLM(nn.Module):
         self.vocab_size = config.vocab_size
 
         self.tok_embeddings = nn.Embedding(config.vocab_size, config.hidden_size)
-        self.layers = nn.ModuleList([TransformerBlock(config) for _ in range(config.num_hidden_layers)])
+        self.layers = nn.ModuleList(
+            [TransformerBlock(config) for _ in range(config.num_hidden_layers)]
+        )
         self.norm = RMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.output = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
 
         self.freqs_cis = precompute_freqs_cis(
             config.hidden_size // config.num_attention_heads,
             config.max_position_embeddings,
-            config.rope_theta
+            config.rope_theta,
         )
 
     def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None):
@@ -85,7 +90,9 @@ class VerifiableLLM(nn.Module):
 
         loss = None
         if targets is not None:
-            loss = torch.nn.functional.cross_entropy(logits.view(-1, self.vocab_size), targets.view(-1))
+            loss = torch.nn.functional.cross_entropy(
+                logits.view(-1, self.vocab_size), targets.view(-1)
+            )
 
         return logits, loss
 
@@ -97,25 +104,29 @@ class VerifiableLLM(nn.Module):
         """
         # Save original state of RNGs
         cpu_rng_state = torch.get_rng_state()
-        if torch.cuda.is_available():
-            gpu_rng_states = torch.cuda.get_rng_state_all()
+        gpu_rng_states = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
 
-        # Set strict seed for reproducibility of initialization
-        torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
+        try:
+            # Set strict seed for reproducibility of initialization
+            torch.manual_seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(seed)
 
-        for module in self.modules():
-            if isinstance(module, nn.Linear):
-                torch.nn.init.normal_(module.weight, mean=0.0, std=self.config.initializer_range)
-                if module.bias is not None:
-                    torch.nn.init.zeros_(module.bias)
-            elif isinstance(module, nn.Embedding):
-                torch.nn.init.normal_(module.weight, mean=0.0, std=self.config.initializer_range)
-            elif isinstance(module, RMSNorm):
-                torch.nn.init.ones_(module.weight)
-
-        # Restore RNG to avoid changing outer application state unintentionally
-        torch.set_rng_state(cpu_rng_state)
-        if torch.cuda.is_available():
-            torch.cuda.set_rng_state_all(gpu_rng_states)
+            for module in self.modules():
+                if isinstance(module, nn.Linear):
+                    torch.nn.init.normal_(
+                        module.weight, mean=0.0, std=self.config.initializer_range
+                    )
+                    if module.bias is not None:
+                        torch.nn.init.zeros_(module.bias)
+                elif isinstance(module, nn.Embedding):
+                    torch.nn.init.normal_(
+                        module.weight, mean=0.0, std=self.config.initializer_range
+                    )
+                elif isinstance(module, RMSNorm):
+                    torch.nn.init.ones_(module.weight)
+        finally:
+            # Restore RNG to avoid changing outer application state unintentionally
+            torch.set_rng_state(cpu_rng_state)
+            if gpu_rng_states is not None:
+                torch.cuda.set_rng_state_all(gpu_rng_states)

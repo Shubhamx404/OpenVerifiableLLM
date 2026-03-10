@@ -5,7 +5,9 @@ from typing import Optional
 @dataclass
 class ModelConfig:
     vocab_size: int = 32000
-    hidden_size: int = 1024       # smaller hidden size for tiny verifiable setup (~1B parameters config scalable)
+    hidden_size: int = (
+        1024  # smaller hidden size for tiny verifiable setup (~1B parameters config scalable)
+    )
     intermediate_size: int = 2816
     num_hidden_layers: int = 22
     num_attention_heads: int = 16
@@ -18,6 +20,13 @@ class ModelConfig:
     def __post_init__(self) -> None:
         if self.num_key_value_heads is None:
             self.num_key_value_heads = self.num_attention_heads
+
+        if self.hidden_size <= 0:
+            raise ValueError("hidden_size must be positive")
+        if self.num_attention_heads <= 0:
+            raise ValueError("num_attention_heads must be positive")
+        if self.num_key_value_heads <= 0:
+            raise ValueError("num_key_value_heads must be positive")
 
         if self.hidden_size % self.num_attention_heads != 0:
             raise ValueError(

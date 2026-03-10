@@ -6,9 +6,10 @@ from openverifiablellm.model import ModelConfig, VerifiableLLM
 def get_model_hash(model):
     hasher = hashlib.sha256()
     for name, param in model.named_parameters():
-        hasher.update(name.encode('utf-8'))
+        hasher.update(name.encode("utf-8"))
         hasher.update(param.data.cpu().numpy().tobytes())
     return hasher.hexdigest()
+
 
 def test_model_initialization_is_deterministic():
     config = ModelConfig(

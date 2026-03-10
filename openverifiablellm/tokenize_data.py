@@ -10,7 +10,10 @@ from openverifiablellm.utils import compute_sha256
 
 logger = logging.getLogger(__name__)
 
-def tokenize_dataset(text_path: Path, tokenizer_path: Path, output_path: Path, chunk_size: int = 1024 * 1024 * 10) -> str:
+
+def tokenize_dataset(
+    text_path: Path, tokenizer_path: Path, output_path: Path, chunk_size: int = 1024 * 1024 * 10
+) -> str:
     """
     Tokenizes a large text dataset into a deterministic uint16 binary file.
     Reads chunk by chunk and streams encoded tokens.
@@ -34,9 +37,7 @@ def tokenize_dataset(text_path: Path, tokenizer_path: Path, output_path: Path, c
     total_tokens = 0
     total_chunks = 0
 
-    with open(text_path, encoding="utf-8") as f_in, \
-         open(output_path, "wb") as f_out:
-
+    with open(text_path, encoding="utf-8") as f_in, open(output_path, "wb") as f_out:
         remainder = ""
         while True:
             text_chunk = f_in.read(chunk_size)
@@ -44,8 +45,10 @@ def tokenize_dataset(text_path: Path, tokenizer_path: Path, output_path: Path, c
                 if remainder:
                     encoded = tokenizer.encode(remainder)
                     if encoded.ids and max(encoded.ids) > 65535:
-                        raise ValueError(f"Token ID {max(encoded.ids)} exceeds uint16 bound of 65535")
-                    ids = np.array(encoded.ids, dtype='<u2')
+                        raise ValueError(
+                            f"Token ID {max(encoded.ids)} exceeds uint16 bound of 65535"
+                        )
+                    ids = np.array(encoded.ids, dtype="<u2")
                     f_out.write(ids.tobytes())
                     total_tokens += len(ids)
                 break
@@ -57,8 +60,8 @@ def tokenize_dataset(text_path: Path, tokenizer_path: Path, output_path: Path, c
             split_idx = max(last_space_idx, last_newline_idx)
 
             if split_idx != -1:
-                complete_portion = text_chunk[:split_idx + 1]
-                remainder = text_chunk[split_idx + 1:]
+                complete_portion = text_chunk[: split_idx + 1]
+                remainder = text_chunk[split_idx + 1 :]
             else:
                 complete_portion = text_chunk
                 remainder = ""
@@ -72,7 +75,7 @@ def tokenize_dataset(text_path: Path, tokenizer_path: Path, output_path: Path, c
                 raise ValueError(f"Token ID {max(encoded.ids)} exceeds uint16 bound of 65535")
 
             # Strict little-endian uint16 ('<u2') for verifiable determinism
-            ids = np.array(encoded.ids, dtype='<u2')
+            ids = np.array(encoded.ids, dtype="<u2")
 
             f_out.write(ids.tobytes())
 
@@ -90,17 +93,30 @@ def tokenize_dataset(text_path: Path, tokenizer_path: Path, output_path: Path, c
 
     return output_hash
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Tokenize cleaned dataset into binary format deterministically")
-    parser.add_argument("--text_path", type=str, required=True, help="Path to cleaned text file (e.g. wiki_clean.txt)")
-    parser.add_argument("--tokenizer_path", type=str, required=True, help="Path to trained tokenizer directory")
-    parser.add_argument("--output_path", type=str, required=True, help="Path to output binary file (.bin)")
+    parser = argparse.ArgumentParser(
+        description="Tokenize cleaned dataset into binary format deterministically"
+    )
+    parser.add_argument(
+        "--text_path",
+        type=str,
+        required=True,
+        help="Path to cleaned text file (e.g. wiki_clean.txt)",
+    )
+    parser.add_argument(
+        "--tokenizer_path", type=str, required=True, help="Path to trained tokenizer directory"
+    )
+    parser.add_argument(
+        "--output_path", type=str, required=True, help="Path to output binary file (.bin)"
+    )
 
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 
     tokenize_dataset(Path(args.text_path), Path(args.tokenizer_path), Path(args.output_path))
+
 
 if __name__ == "__main__":
     main()
