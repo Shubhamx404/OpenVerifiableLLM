@@ -23,6 +23,7 @@ include = ["openverifiablellm*"]
 dev = [
     "pytest>=7.0",
     "ruff>=0.15.4",
+    "numpy",
 ]
 
 [tool.ruff]
@@ -32,3 +33,7 @@ target-version = "py39"
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = ["E501"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+]
